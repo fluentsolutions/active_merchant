@@ -129,11 +129,36 @@ module ActiveMerchant #:nodoc:
         post[:source][:token] = token.payment_data
       end
 
+      def build_billing_address(address)
+        return {} if address.blank?
+
+        billing_address = {}
+        billing_address[:address_line1] = address[:address1] unless address[:address1].blank?
+        billing_address[:address_line2] = address[:address2] unless address[:address2].blank?
+        billing_address[:city] = address[:city] unless address[:city].blank?
+        billing_address[:state] = address[:state] unless address[:state].blank?
+        billing_address[:country] = address[:country] unless address[:country].blank?
+        billing_address[:zip] = address[:zip] unless address[:zip].blank?
+
+        billing_address
+      end
+
+      def build_phone(address)
+        return {} if address.blank?
+
+        if !address[:phone].blank?
+          return { number: address[:phone] }
+        else
+          return {}
+        end
+      end
+
       def add_customer_data(post, options)
         post[:customer] = {}
         post[:customer][:email] = options[:email] || nil
         post[:payment_ip] = options[:ip] if options[:ip]
         address = options[:billing_address]
+<<<<<<< HEAD
         if address && post[:source]
           post[:source][:billing_address] = {}
           post[:source][:billing_address][:address_line1] = address[:address1] unless address[:address1].blank?
@@ -142,6 +167,11 @@ module ActiveMerchant #:nodoc:
           post[:source][:billing_address][:state] = address[:state] unless address[:state].blank?
           post[:source][:billing_address][:country] = address[:country] unless address[:country].blank?
           post[:source][:billing_address][:zip] = address[:zip] unless address[:zip].blank?
+=======
+        if(address && post[:source])
+          post[:source][:billing_address] = build_billing_address(address)
+          post[:source][:phone] = build_phone(address)
+>>>>>>> Move building phone and billing addresses into functions
         end
       end
 
