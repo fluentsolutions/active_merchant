@@ -1,5 +1,11 @@
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
+    class CheckoutPaymentToken < PaymentToken
+      def type
+        'checkout'
+      end
+    end
+
     class CheckoutV2Gateway < Gateway
       self.display_name = 'Checkout.com Unified Payments'
       self.homepage_url = 'https://www.checkout.com/'
@@ -100,13 +106,27 @@ module ActiveMerchant #:nodoc:
 
       def add_payment_method(post, payment_method, options)
         post[:source] = {}
+
+        if payment_method.is_a?(CreditCard)
+          add_credit_card(post, payment_method)
+
+        elsif payment_method.is_a?(CheckoutPaymentToken)
+          add_payment_token(post, payment_method)
+        end
+      end
+
+      def add_credit_card(post, credit_card)
         post[:source][:type] = 'card'
-        post[:source][:name] = payment_method.name
-        post[:source][:number] = payment_method.number
-        post[:source][:cvv] = payment_method.verification_value
-        post[:source][:expiry_year] = format(payment_method.year, :four_digits)
-        post[:source][:expiry_month] = format(payment_method.month, :two_digits)
-        post[:source][:stored] = 'true' if options[:card_on_file] == true
+        post[:source][:name] = credit_card.name
+        post[:source][:number] = credit_card.number
+        post[:source][:cvv] = credit_card.verification_value
+        post[:source][:expiry_year] = format(credit_card.year, :four_digits)
+        post[:source][:expiry_month] = format(credit_card.month, :two_digits)
+      end
+
+      def add_payment_token(post, token)
+        post[:source][:type] = 'token'
+        post[:source][:token] = token.payment_data
       end
 
       def add_customer_data(post, options)
@@ -150,11 +170,7 @@ module ActiveMerchant #:nodoc:
 
       def commit(action, post, authorization = nil)
         begin
-<<<<<<< HEAD
-          raw_response = (action == :verify_payment ? ssl_get("#{base_url}/payments/#{post}", headers) : ssl_post(url(post, action, authorization), post.to_json, headers))
-=======
           raw_response = ssl_post(url(post, action, authorization), post.to_json, headers(action))
->>>>>>> Use public_key for tokenizing credit cards
           response = parse(raw_response)
           if action == :capture && response.key?('_links')
             response['id'] = response['_links']['payment']['href'].split('/')[-1]
@@ -191,13 +207,8 @@ module ActiveMerchant #:nodoc:
         key = @options[:public_key] if action == :tokenize_credit_card
 
         {
-<<<<<<< HEAD
-          'Authorization' => @options[:secret_key],
-          'Content-Type' => 'application/json;charset=UTF-8',
-=======
           'Authorization' => key,
           'Content-Type'  => 'application/json;charset=UTF-8'
->>>>>>> Use public_key for tokenizing credit cards
         }
       end
 
